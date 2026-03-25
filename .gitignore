@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+throw_ai_env/
+venv/
+env/
+
+# Videos
+*.mp4
+*.avi
+
+# Data folders
+uploads/
+outputs/
+
+# Data files
+*.csv
+
+# Environment variables
+.env

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Throw Analyzer</title>
+</head>
+<body>
+  <h1>Upload Throw Video</h1>
+
+  <input type="file" id="fileInput" />
+  <button onclick="upload()">Analyze</button>
+
+  <p id="status"></p>
+  <video id="result" controls width="500"></video>
+  <script>
+  async function upload() {
+    const file = document.getElementById("fileInput").files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const statusEl = document.getElementById("status");
+    const videoEl = document.getElementById("result");
+
+    statusEl.innerText = "Uploading...";
+  
+    const res = await fetch("/analyze", { method: "POST", body: formData });
+    const data = await res.json();
+
+    statusEl.innerText = "Processing complete!";
+
+    // Force fresh fetch with timestamp
+    videoEl.src = data.output_video + "?t=" + new Date().getTime();
+    videoEl.load();
+
+    videoEl.oncanplay = () => {
+      videoEl.play().catch(err => console.log("Play error:", err));
+    };
+  }
+</script>
+</body>
+</html>
