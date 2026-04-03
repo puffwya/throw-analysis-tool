@@ -23,7 +23,6 @@ def calculate_angle(a, b, c):
 
 # === Helper: detect rotation metadata using ffprobe ===
 def get_rotation_angle(filename):
-    """Return rotation in degrees (0, 90, 180, 270) if available"""
     try:
         cmd = [
             "ffprobe", "-v", "error",
@@ -52,7 +51,7 @@ if rotation in [90, 270]:
     width, height = height, width
 
 os.makedirs(os.path.dirname(output_video), exist_ok=True)
-fourcc = cv2.VideoWriter_fourcc(*"MJPG")  # MJPEG works in AVI
+fourcc = cv2.VideoWriter_fourcc(*"MJPG")
 out = cv2.VideoWriter(output_video, fourcc, fps, (width, height))
 
 # === Mediapipe Pose Setup ===
@@ -63,6 +62,10 @@ pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_t
 angles_data = []
 dominant_side = None
 frame_idx = 0
+
+# --- ADD THESE LINES FOR SMOOTHING ---
+prev_lm = None
+alpha = 0.5  # smoothing factor, tweak 0.1-0.8
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -83,6 +86,16 @@ while cap.isOpened():
     if results.pose_landmarks:
         lm = results.pose_landmarks.landmark
 
+        # --- INSERT SMOOTHING HERE ---
+        if prev_lm is not None:
+            for i, point in enumerate(lm):
+                point.x = alpha * point.x + (1 - alpha) * prev_lm[i].x
+                point.y = alpha * point.y + (1 - alpha) * prev_lm[i].y
+                point.z = alpha * point.z + (1 - alpha) * prev_lm[i].z
+        # save current frame landmarks for next frame
+        prev_lm = [point for point in lm]
+
+        # --- REST OF YOUR EXISTING CODE BELOW ---
         def lm_coords(name):
             point = lm[mp_pose.PoseLandmark[name].value]
             return [point.x, point.y]

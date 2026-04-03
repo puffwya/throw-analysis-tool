@@ -2,6 +2,16 @@
 <html>
 <head>
   <title>Throw Analyzer</title>
+  <style>
+    #resultContainer {
+      margin-top: 20px;
+    }
+    #advice {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #2a9d8f;
+    }
+  </style>
 </head>
 <body>
   <h1>Upload Throw Video</h1>
@@ -10,31 +20,64 @@
   <button onclick="upload()">Analyze</button>
 
   <p id="status"></p>
-  <video id="result" controls width="500"></video>
-  <script>
-  async function upload() {
-    const file = document.getElementById("fileInput").files[0];
-    const formData = new FormData();
-    formData.append("file", file);
 
-    const statusEl = document.getElementById("status");
-    const videoEl = document.getElementById("result");
+  <div id="resultContainer">
+    <video id="result" controls width="500"></video>
+    <p id="prediction"></p>
+    <p id="advice"></p>
+  </div>
 
-    statusEl.innerText = "Uploading...";
-  
+<script>
+async function upload() {
+  const file = document.getElementById("fileInput").files[0];
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const statusEl = document.getElementById("status");
+  const videoEl = document.getElementById("result");
+  const predEl = document.getElementById("prediction");
+  const adviceEl = document.getElementById("advice");
+
+  statusEl.innerText = "Uploading...";
+  predEl.innerText = "";
+  adviceEl.innerText = "";
+
+  try {
+    // 1️⃣ Upload & process video
     const res = await fetch("/analyze", { method: "POST", body: formData });
     const data = await res.json();
 
+    if (data.error) {
+      statusEl.innerText = "Error during processing: " + data.error;
+      return;
+    }
+
     statusEl.innerText = "Processing complete!";
 
-    // Force fresh fetch with timestamp
+    // 2️⃣ Show processed video (force fresh fetch)
     videoEl.src = data.output_video + "?t=" + new Date().getTime();
     videoEl.load();
-
     videoEl.oncanplay = () => {
       videoEl.play().catch(err => console.log("Play error:", err));
     };
+
+    // 3️⃣ Show ML prediction if available
+    if (data.prediction) {
+      const pred = data.prediction;
+      predEl.innerText = `Prediction: ${pred.label} (Confidence: ${(pred.probability*100).toFixed(1)}%)`;
+
+      if (pred.advice && pred.advice.length > 0) {
+        adviceEl.innerText = `Advice: ${pred.advice.join(", ")}`;
+      } else {
+        adviceEl.innerText = "Advice: None";
+      }
+    }
+
+  } catch (err) {
+    console.error(err);
+    statusEl.innerText = "Error during upload or processing.";
   }
+}
 </script>
 </body>
 </html>
